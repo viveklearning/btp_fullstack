@@ -71,7 +71,7 @@ def retrieve_docs(query):
     results = index.query(
         vector=query_emb,
         namespace="pdf-namespace",
-        top_k=5,
+        top_k=10,
         include_metadata=True
     )
     return [match['metadata']['text'] for match in results.get("matches", [])]
