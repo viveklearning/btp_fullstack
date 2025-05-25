@@ -1,30 +1,53 @@
-// src/UploadForm.jsx
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
-function UploadForm() {
-  const [file, setFile] = useState(null);
-  const [msg, setMsg] = useState('');
+const UploadForm = () => {
+  const [selectedFiles, setSelectedFiles] = useState([]);
 
-  const handleUpload = async () => {
+  const handleFileChange = (e) => {
+    setSelectedFiles(Array.from(e.target.files));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedFiles.length) {
+      alert("Please select one or more PDF files.");
+      return;
+    }
+
     const formData = new FormData();
-    formData.append("file", file);
+    for (let i = 0; i < selectedFiles.length; i++) {
+      formData.append("files", selectedFiles[i]);
+    }
 
-    const res = await fetch("http://localhost:8000/upload/", {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const response = await fetch("http://localhost:8000/upload/", {
+        method: "POST",
+        body: formData,
+      });
 
-    const data = await res.json();
-    setMsg(data.message || data.error);
+      const result = await response.json();
+      if (result.success) {
+        alert(result.message);
+      } else {
+        alert("Upload failed: " + (result.error || "Unknown error"));
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("Error uploading PDFs");
+    }
   };
 
   return (
-    <>
-      <input type="file" accept="application/pdf" onChange={e => setFile(e.target.files[0])} />
-      <button onClick={handleUpload}>Upload</button>
-      <p>{msg}</p>
-    </>
+    <form onSubmit={handleSubmit}>
+      <input
+        type="file"
+        accept="application/pdf"
+        multiple
+        onChange={handleFileChange}
+      />
+      <button type="submit">Upload PDFs</button>
+    </form>
   );
-}
+};
 
 export default UploadForm;

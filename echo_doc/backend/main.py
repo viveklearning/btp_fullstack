@@ -2,6 +2,7 @@ from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from utils import load_pdf, split_text, index_docs, retrieve_docs, answer_question
 import os
+from typing import List
 
 app = FastAPI()
 
@@ -14,21 +15,21 @@ app.add_middleware(
 )
 
 @app.post("/upload/")
-async def upload_pdf(file: UploadFile = File(...)):
+async def upload_pdfs(files: List[UploadFile] = File(...)):
     os.makedirs("uploaded_pdfs", exist_ok=True)
-    file_path = os.path.join("uploaded_pdfs", file.filename)
-    with open(file_path, "wb") as f:
-        f.write(await file.read())
-    documents = load_pdf(file_path)
-    if not documents:
-        return {"success": False, "error": "Failed to extract text"}
-    
-    chunks = split_text(documents)
-    if not chunks:
-        return {"success": False, "error": "No valid chunks"}
+    all_chunks = []
+    for file in files:
+        file_path = os.path.join("uploaded_pdfs", file.filename)
+        with open(file_path, "wb") as f:
+            f.write(await file.read())
+        documents = load_pdf(file_path)
+        if not documents:
+            continue
+        chunks = split_text(documents, metadata={"source": file.filename})
+        all_chunks.extend(chunks)
 
-    index_docs(chunks)
-    return {"success": True, "message": "PDF processed and indexed"}
+    index_docs(all_chunks)
+    return {"success": True, "message": f"{len(files)} PDF(s) indexed"}
 
 @app.post("/ask/")
 async def ask_question(question: str = Form(...)):
@@ -36,4 +37,4 @@ async def ask_question(question: str = Form(...)):
     if not docs:
         return {"answer": "I couldn't find relevant information."}
     answer = answer_question(question, docs)
-    return {"answer": answer}
+    return {"answer": answer, "sources": [d["source"] for d in docs if "source" in d]}

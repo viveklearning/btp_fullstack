@@ -49,9 +49,15 @@ def load_pdf(file_path):
     return loader.load()
 
 # --- Text chunking ---
-def split_text(documents):
+def split_text(documents, metadata=None):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    return text_splitter.split_documents(documents)
+    chunks = text_splitter.split_documents(documents)
+    
+    # Attach metadata (e.g., filename) to each chunk if provided
+    if metadata:
+        for chunk in chunks:
+            chunk.metadata.update(metadata)
+    return chunks
 
 # --- Indexing ---
 def index_docs(documents):
@@ -59,9 +65,19 @@ def index_docs(documents):
 
     texts = [doc.page_content for doc in documents]
     embeddings = get_embeddings(texts)
+
     vectors = []
-    for i, (text, emb) in enumerate(zip(texts, embeddings)):
-        vectors.append({"id": str(i), "values": emb, "metadata": {"text": text}})
+    for doc, emb in zip(documents, embeddings):
+        uid = f"{hash(doc.page_content)}"  # Optional: use uuid.uuid4() for true uniqueness
+        vectors.append({
+            "id": uid,
+            "values": emb,
+            "metadata": {
+                "text": doc.page_content,
+                **doc.metadata
+            }
+        })
+
     if vectors:
         index.upsert(vectors=vectors, namespace="pdf-namespace")
 
@@ -80,7 +96,7 @@ def retrieve_docs(query):
 def answer_question(question, retrieved_docs):
     context = "\n\n".join(retrieved_docs)
     prompt = f"""
-You are an assistant for question-answering tasks. Use the following context to answer in detail.
+You are an assistant for question-answering tasks. Use the following context to answer in as much detail as possible.
 
 Question: {question}
 Context: {context}
