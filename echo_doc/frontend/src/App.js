@@ -50,7 +50,9 @@
 
 
 import React from "react";
-import UploadForm from "./UploadForm";
+// import UploadForm from "./UploadForm";
+import PDFUploadManager from "./PDFUploadManager";
+
 import AskQuestion from "./AskQuestion";
 import "./App.css";
 import { motion } from "framer-motion";
@@ -71,8 +73,9 @@ function App() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h2><FaFilePdf style={{ marginRight: '8px', color: '#dc2626' }} />Upload your PDF</h2>
-        <UploadForm />
+<h2><FaFilePdf style={{ marginRight: '8px', color: '#dc2626' }} />Upload your PDF</h2>
+<PDFUploadManager />
+        {/* <UploadForm /> */}
       </motion.div>
 
       <motion.div
